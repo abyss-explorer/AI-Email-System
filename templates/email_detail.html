@@ -1,141 +1,275 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     {# 页面标题使用邮件主题 #}
     <title>{{ email.subject | default('无主题邮件') }} - AI Email System</title>
-     <style>
-        /* 使用与列表页类似的样式，并添加详情页特有的样式 */
-        body { font-family: sans-serif; line-height: 1.6; margin: 20px; background-color: #f4f4f4; color: #333; }
-        .container { max-width: 900px; margin: 20px auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
-        h1 { color: #0056b3; margin-bottom: 10px; word-break: break-word; } /* 允许主题长时换行 */
-        .email-meta { font-size: 0.9em; color: #777; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .email-meta span { margin-right: 20px; }
-        .email-body { margin-top: 20px; padding: 15px; background-color: #f9f9f9; border: 1px solid #eee; border-radius: 5px; white-space: pre-wrap; word-wrap: break-word; } /* 保留换行符并允许长单词换行 */
-        .ai-section { margin-top: 25px; padding-top: 20px; border-top: 1px solid #eee; }
-        .ai-section h2 { color: #0056b3; font-size: 1.3em; margin-bottom: 15px; }
-        .ai-section p { margin-bottom: 10px; }
-        .classification { font-weight: bold; }
-         /* Classification specific colors - Ensure these match index.html */
-        .classification-工作 { color: #007bff; }
-        .classification-个人 { color: #28a745; }
-        .classification-广告 { color: #ffc107; }
-        .classification-垃圾邮件 { color: #dc3545; }
-        .classification-AI处理失败 { color: #6c757d; }
-        .classification-无正文 { color: #6c757d; }
-        .classification-其他 { color: #6c757d; }
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        margin: 0;
+        padding: 0;
+        background-color: #f8f9fa;
+        color: #495057;
+      }
 
-        .summary, .reply-suggestion { background-color: #e9f7ef; border: 1px solid #d4edda; padding: 15px; border-radius: 5px; margin-top: 15px; white-space: pre-wrap; word-wrap: break-word; }
-        .summary { background-color: #fff3cd; border-color: #ffeeba; } /* 摘要使用不同的背景色 */
+      /* 响应式容器样式 */
+      .container {
+        max-width: 1000px;
+        margin: 30px auto;
+        background-color: #ffffff;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+      }
 
-         .back-link { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #0056b3; font-size: 1.1em; }
-         .back-link:hover { text-decoration: underline; }
-
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: inline-block; margin-right: 15px; }
-        .form-group input[type="radio"] { margin-right: 5px; }
-        .form-group button {
-            margin-top: 15px;
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.3s ease;
+      /* 小屏幕设备适配 */
+      @media (max-width: 768px) {
+        .container {
+          max-width: 100%;
+          margin: 15px;
+          padding: 15px;
         }
-         .form-group button:hover {
-             background-color: #0056b3;
-         }
+        .email-meta span {
+          display: block;
+          margin-bottom: 5px;
+        }
+      }
 
+      h1 {
+        color: #007bff;
+        margin-bottom: 15px;
+        word-break: break-word;
+        font-size: 2.5rem;
+        font-weight: 700;
+      }
 
+      .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        text-decoration: none;
+        color: #007bff;
+        font-size: 1.1em;
+        transition: color 0.3s ease, transform 0.3s ease;
+      }
+
+      .back-link i {
+        margin-right: 5px;
+      }
+
+      .back-link:hover {
+        color: #0056b3;
+        text-decoration: underline;
+        transform: scale(1.05);
+      }
+
+      .email-meta {
+        font-size: 0.9em;
+        color: #6c757d;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 15px;
+      }
+
+      .email-meta span {
+        margin-right: 25px;
+      }
+
+      .email-body {
+        margin-top: 30px;
+        padding: 25px;
+        background-color: #f1f3f5;
+        border: none;
+        border-radius: 8px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-size: 1.05rem;
+      }
+
+      .ai-section {
+        margin-top: 30px;
+        padding-top: 25px;
+        border-top: 2px solid #e9ecef;
+      }
+
+      .ai-section h2 {
+        color: #007bff;
+        font-size: 1.8em;
+        font-weight: 600;
+        margin-bottom: 20px;
+      }
+
+      .ai-section p {
+        margin-bottom: 15px;
+      }
+
+      .classification {
+        font-weight: bold;
+      }
+
+      .summary,
+      .reply-suggestion {
+        background-color: #e9f7ef;
+        border: 1px solid #d4edda;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-size: 1.05rem;
+      }
+
+      .summary {
+        background-color: #fff3cd;
+        border-color: #ffeeba;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        display: inline-block;
+        margin-right: 20px;
+        font-size: 1.05rem;
+      }
+
+      .form-group input[type="radio"] {
+        margin-right: 8px;
+      }
+
+      .form-group button {
+        margin-top: 20px;
+        padding: 12px 25px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1.1em;
+        transition: background-color 0.3s ease, transform 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .form-group button:hover {
+        background-color: #0056b3;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      .form-group button:active {
+        transform: scale(0.95);
+      }
+
+      /* 分类颜色样式 */
+      .classification-工作 {
+        color: #007bff;
+      }
+
+      .classification-个人 {
+        color: #28a745;
+      }
+
+      .classification-广告 {
+        color: #ffc107;
+      }
+
+      .classification-垃圾邮件 {
+        color: #dc3545;
+      }
+
+      .classification-AI处理失败 {
+        color: #6c757d;
+      }
+
+      .classification-无正文 {
+        color: #6c757d;
+      }
+
+      .classification-其他 {
+        color: #6c757d;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        {# 返回列表页的链接 #}
-        <a href="{{ url_for('index') }}" class="back-link">&larr; 返回邮件列表</a>
-
-        {# 显示邮件主题 #}
-        <h1>{{ email.subject | default('无主题') }}</h1>
-
-        {# 显示邮件元信息：发件人，日期，分类 #}
-        <div class="email-meta">
-            <span><strong>发件人:</strong> {{ email.sender | default('未知发件人') }}</span>
-            <span><strong>日期:</strong> {{ email.date | default('未知日期') }}</span>
-             <span class="classification classification-{{ email.classification | default('其他') }}">
-                <strong>分类:</strong> {{ email.classification | default('未分类') }}
-            </span>
-            {# 显示 AI 处理时间 #}
-            {% if email.ai_processed_at %}
-                 <p style="font-size: 0.9em; color: #999; margin-top: 5px;">AI处理时间: {{ email.ai_processed_at }}</p>
-            {% endif %}
+      <a href="{{ url_for('index') }}" class="back-link">
+        <i class="fa-solid fa-arrow-left"></i> 返回邮件列表
+      </a>
+      <h1>{{ email.subject | default('无主题') }}</h1>
+      <div class="email-meta">
+        <span
+          ><strong>发件人:</strong> {{ email.sender | default('未知发件人')
+          }}</span
+        >
+        <span
+          ><strong>日期:</strong> {{ email.date | default('未知日期') }}</span
+        >
+        <span
+          class="classification classification-{{ email.classification | default('其他') }}"
+        >
+          <strong>分类:</strong> {{ email.classification | default('未分类') }}
+        </span>
+        {% if email.ai_processed_at %}
+        <p style="font-size: 0.9em; color: #999; margin-top: 8px">
+          AI处理时间: {{ email.ai_processed_at }}
+        </p>
+        {% endif %}
+      </div>
+      <div class="email-body">
+        <h2>邮件正文:</h2>
+        <p>{{ email.body | default('无正文') }}</p>
+      </div>
+      <div class="ai-section">
+        <h2>AI 分析结果:</h2>
+        {% if email.classification_reason %}
+        <p>
+          <strong>分类理由:</strong> {{ email.classification_reason |
+          default('无理由') }}
+        </p>
+        {% endif %} {% if email.summary and email.summary != 'AI摘要失败' %}
+        <div class="summary">
+          <strong>摘要:</strong> {{ email.summary | default('无摘要') }}
         </div>
-
-        {# 显示完整邮件正文 #}
-        <div class="email-body">
-            <h2>邮件正文:</h2>
-            {# {{ email.body | default('无正文') }} #}
-            {# 使用 <pre> 标签或处理，但 white-space: pre-wrap; 样式通常已经足够 #}
-            <p>{{ email.body | default('无正文') }}</p>
+        {% endif %} {% if email.reply_suggestion and email.reply_suggestion !=
+        'AI回复建议失败' %}
+        <div class="reply-suggestion">
+          <strong>回复建议:</strong> {{ email.reply_suggestion |
+          default('无建议') }}
         </div>
-
-        {# 显示 AI 分析结果 #}
-        <div class="ai-section">
-             <h2>AI 分析结果:</h2>
-
-             {# 显示分类理由 #}
-             {% if email.classification_reason %}
-                 <p><strong>分类理由:</strong> {{ email.classification_reason | default('无理由') }}</p>
-             {% endif %}
-
-             {# 显示摘要 #}
-             {% if email.summary and email.summary != 'AI摘要失败' %}
-                <div class="summary">
-                    <strong>摘要:</strong> {{ email.summary | default('无摘要') }}
-                </div>
-             {% endif %}
-
-             {# 显示回复建议 #}
-             {% if email.reply_suggestion and email.reply_suggestion != 'AI回复建议失败' %}
-                <div class="reply-suggestion">
-                    <strong>回复建议:</strong> {{ email.reply_suggestion | default('无建议') }}
-                </div>
-             {% endif %}
-
-             {# 显示 AI 处理状态异常时的信息 #}
-             {% if email.classification == 'AI处理失败' or email.classification == '内部错误' or email.classification == '无正文' %}
-                 <p style="color: red;"><strong>AI处理状态:</strong> {{ email.classification }} - {{ email.classification_reason | default('无详细信息') }}</p>
-             {% endif %}
-
-
-             <h3 style="margin-top: 20px;">用户分类反馈 / 修正:</h3>
-             {# 添加分类修正表单 #}
-             {# 表单提交到一个新的 URL (比如 /update_classification/邮件ID)，使用 POST 方法 #}
-             {# url_for('update_classification', email_id=email.id) 会根据 Flask 中定义的路由生成正确的 URL #}
-             <form action="{{ url_for('update_classification', email_id=email.id) }}" method="post">
-                <div class="form-group">
-                     <p><strong>修正 AI 分类为:</strong></p>
-                     {# 定义所有可能的分类选项 #}
-                     {% set classifications = ['工作', '个人', '广告', '垃圾邮件', '其他'] %}
-                     {% for cls in classifications %}
-                         <label>
-                             <input type="radio" name="new_classification" value="{{ cls }}"
-                                    {% if email.classification == cls %} checked {% endif %}> {# 如果当前分类与选项匹配，则默认选中 #}
-                             {{ cls }}
-                         </label>
-                         {% if not loop.last %}&nbsp;&nbsp;{% endif %} {# 添加一些右边距 #}
-                     {% endfor %}
-                 </div>
-                 <div class="form-group">
-                     <button type="submit">保存分类修正</button>
-                 </div>
-             </form>
-
-        </div>
-
+        {% endif %} {% if email.classification == 'AI处理失败' or
+        email.classification == '内部错误' or email.classification == '无正文'
+        %}
+        <p style="color: red">
+          <strong>AI处理状态:</strong> {{ email.classification }} - {{
+          email.classification_reason | default('无详细信息') }}
+        </p>
+        {% endif %}
+        <h3 style="margin-top: 25px">用户分类反馈 / 修正:</h3>
+        <form
+          action="{{ url_for('update_classification', email_id=email.id) }}"
+          method="post"
+        >
+          <div class="form-group">
+            <p><strong>修正 AI 分类为:</strong></p>
+            {% set classifications = ['工作', '个人', '广告', '垃圾邮件',
+            '其他'] %} {% for cls in classifications %}
+            <label>
+              <input type="radio" name="new_classification" value="{{ cls }}" {%
+              if email.classification == cls %} checked {% endif %}> {{ cls }}
+            </label>
+            {% if not loop.last %}&nbsp;&nbsp;{% endif %} {% endfor %}
+          </div>
+          <div class="form-group">
+            <button type="submit">保存分类修正</button>
+          </div>
+        </form>
+      </div>
     </div>
-</body>
+  </body>
 </html>

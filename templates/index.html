@@ -1,73 +1,418 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ page_title }} - AI Email System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+      rel="stylesheet"
+    />
     <style>
-        /* 保持之前的基本样式 */
-        body { font-family: sans-serif; line-height: 1.6; margin: 20px; background-color: #f4f4f4; color: #333; }
-        .container { max-width: 900px; margin: 20px auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
-        h1 { color: #0056b3; text-align: center; margin-bottom: 20px; }
-        .email-list { list-style: none; padding: 0; }
-        .email-item { background-color: #e9e9eb; border: 1px solid #ccc; margin-bottom: 15px; padding: 15px; border-radius: 5px; } /* 稍微增加底部间距 */
-        .email-header { font-weight: bold; margin-bottom: 5px; color: #0056b3; }
-        .email-meta { font-size: 0.8em; color: #777; margin-top: 5px; margin-bottom: 10px; } /* 增加底部间距 */
-        .email-meta span { margin-right: 15px; }
-        .email-summary, .email-reply { font-size: 0.9em; color: #555; margin-top: 5px; padding-left: 10px; border-left: 3px solid #0056b3; } /* 为摘要和建议添加样式 */
-        .email-reply { border-left-color: #28a745; } /* 回复建议使用不同的颜色 */
-        .ai-results { margin-top: 10px; }
-        .ai-results p { margin: 5px 0; }
+      /* 全局样式 */
+      body {
+        font-family: "Inter", sans-serif;
+        line-height: 1.6;
+        margin: 0;
+        padding: 0;
+        background-color: #f9fafb;
+        color: #374151;
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
 
-        /* Optional: Style for different classifications */
-        .classification-工作 { color: #007bff; font-weight: bold; }
-        .classification-个人 { color: #28a745; font-weight: bold; }
-        .classification-广告 { color: #ffc107; font-weight: bold; }
-        .classification-垃圾邮件 { color: #dc3545; font-weight: bold; }
-        .classification-AI处理失败 { color: #6c757d; font-weight: bold; }
-        .classification-无正文 { color: #6c757d; font-weight: bold; }
-         .classification-其他 { color: #6c757d; font-weight: bold; } /* Default/fallback */
+      body.dark-mode {
+        background-color: #1f2937;
+        color: #e5e7eb;
+      }
 
+      /* 容器样式 */
+      .container {
+        max-width: 1200px;
+        margin: 30px auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        position: relative; /* 新增，用于定位标题 */
+        transition: background-color 0.3s ease;
+      }
+
+      body.dark-mode .container {
+        background-color: #374151;
+      }
+
+      /* 标题样式 */
+      h1 {
+        color: #1d4ed8;
+        font-size: 3.5rem; /* 增大字体 */
+        text-align: left; /* 标题左对齐 */
+        margin: 0 0 20px 0; /* 调整外边距 */
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        transition: color 0.3s ease; /* 添加颜色过渡效果 */
+        cursor: pointer; /* 鼠标指针样式 */
+      }
+
+      h1:hover {
+        color: #153eab; /* 鼠标悬停时的颜色 */
+      }
+
+      body.dark-mode h1 {
+        color: #60a5fa;
+      }
+
+      body.dark-mode h1:hover {
+        color: #93c5fd;
+      }
+
+      /* 筛选器样式 */
+      .filter-container {
+        background-color: #f3f4f6;
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        margin-top: 1rem;
+        margin-bottom: 2.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1.5rem;
+        transition: all 0.3s ease;
+      }
+
+      .filter-container:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      body.dark-mode .filter-container {
+        background-color: #4b5563;
+      }
+
+      .filter-label {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #374151;
+        display: flex;
+        align-items: center;
+      }
+
+      body.dark-mode .filter-label {
+        color: #e5e7eb;
+      }
+
+      .filter-label i {
+        margin-right: 0.5rem;
+        font-size: 1.25rem;
+        color: #1d4ed8;
+      }
+
+      body.dark-mode .filter-label i {
+        color: #60a5fa;
+      }
+
+      .filter-select {
+        padding: 0.75rem 1.25rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 16px 12px;
+        transition: all 0.3s ease;
+        font-size: 1rem;
+        color: #374151;
+        width: 200px;
+      }
+
+      body.dark-mode .filter-select {
+        background-color: #6b7280;
+        color: #e5e7eb;
+        border-color: #9ca3af;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23e5e7eb' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+      }
+
+      .filter-select:hover {
+        border-color: #9ca3af;
+      }
+
+      .filter-select:focus {
+        border-color: #1d4ed8;
+        outline: 0;
+        box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.2);
+        background-color: #e5e7eb;
+      }
+
+      body.dark-mode .filter-select:focus {
+        border-color: #60a5fa;
+        box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+      }
+
+      /* 邮件列表项样式 */
+      .email-item {
+        display: block;
+        background-color: #fff;
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .email-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        background-color: #f9fafb;
+      }
+
+      body.dark-mode .email-item {
+        background-color: #4b5563;
+      }
+
+      body.dark-mode .email-item:hover {
+        background-color: #6b7280;
+      }
+
+      .email-item::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background-color: #1d4ed8;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .email-item:hover::before {
+        opacity: 1;
+      }
+
+      .email-item:active {
+        transform: scale(0.98);
+      }
+
+      .email-subject {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1d4ed8;
+        margin-bottom: 0.5rem;
+      }
+
+      body.dark-mode .email-subject {
+        color: #60a5fa;
+      }
+
+      .email-meta {
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 0.9rem;
+        color: #6b7280;
+        margin-bottom: 1rem;
+      }
+
+      body.dark-mode .email-meta {
+        color: #9ca3af;
+      }
+
+      .email-meta span {
+        margin-right: 1rem;
+      }
+
+      .email-summary {
+        font-size: 0.9rem;
+        color: #4b5563;
+        line-height: 1.5;
+      }
+
+      body.dark-mode .email-summary {
+        color: #d1d5db;
+      }
+
+      /* 自定义分类颜色样式 */
+      .classification-工作 {
+        color: #1d4ed8;
+      }
+
+      body.dark-mode .classification-工作 {
+        color: #60a5fa;
+      }
+
+      .classification-个人 {
+        color: #22c55e;
+      }
+
+      body.dark-mode .classification-个人 {
+        color: #4ade80;
+      }
+
+      .classification-广告 {
+        color: #f59e0b;
+      }
+
+      body.dark-mode .classification-广告 {
+        color: #fbbf24;
+      }
+
+      .classification-垃圾邮件 {
+        color: #ef4444;
+      }
+
+      body.dark-mode .classification-垃圾邮件 {
+        color: #f87171;
+      }
+
+      .classification-AI处理失败 {
+        color: #9ca3af;
+      }
+
+      body.dark-mode .classification-AI处理失败 {
+        color: #d1d5db;
+      }
+
+      .classification-无正文 {
+        color: #9ca3af;
+      }
+
+      body.dark-mode .classification-无正文 {
+        color: #d1d5db;
+      }
+
+      .classification-其他 {
+        color: #9ca3af;
+      }
+
+      body.dark-mode .classification-其他 {
+        color: #d1d5db;
+      }
+
+      /* 模式切换按钮样式 */
+      .mode-toggle {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 1.5rem;
+        color: #374151;
+        transition: color 0.3s ease;
+      }
+
+      body.dark-mode .mode-toggle {
+        color: #e5e7eb;
+      }
     </style>
-</head>
-<body>
+  </head>
+
+  <body class="bg-gray-100 font-sans text-gray-700">
     <div class="container">
-        <h1>{{ system_name }}</h1>
-        <p>显示最近的邮件列表（从数据库读取）：</p>
-        <ul class="email-list">
-            {% if emails %}
-                {% for email in emails %}
-                    {# 使用 a 标签将整个 li 内容包装起来，href 指向新的详情页路由 #}
-                    {# url_for('show_email_detail', email_id=email.id) 会根据 Flask 中的路由定义生成类似 /email/邮件ID 的URL #}
-                    <a href="{{ url_for('show_email_detail', email_id=email.id) }}" style="text-decoration: none; color: inherit;">
-                    <li class="email-item">
-                        <div class="email-header">
-                            主题: {{ email.subject | default('无主题') }}
-                        </div>
-                        <div class="email-meta">
-                            <span>发件人: {{ email.sender | default('未知发件人') }}</span>
-                            <span>日期: {{ email.date | default('未知日期') }}</span>
-                            <span class="classification-{{ email.classification | default('其他') }}">
-                                分类: {{ email.classification | default('未分类') }}
-                            </span>
-                        </div>
-                        {# 在列表页可以只显示摘要片段 #}
-                         {% if email.summary and email.summary != 'AI摘要失败' %}
-                           <div class="email-summary">
-                                <strong>摘要:</strong> {{ email.summary | default('无摘要') | truncate(150, True) }} {# Jinja2 的 truncate 过滤器可用于截断文本 #}
-                           </div>
-                        {% endif %}
-                         {# 回复建议在列表页不显示，移到详情页 #}
-                    </li>
-                     </a> {# 关闭 a 标签 #}
-                {% endfor %}
-            {% else %}
-                {# ... (如果 emails 列表为空时的提示不变) ... #}
-                <li>数据库中没有找到邮件记录或获取失败。</li>
-                <li>请确保您已运行过 fetch_mail.py 来获取和存储邮件。</li>
-                <li>请确保您已运行过 process_mail_ai.py 来进行 AI 处理。</li>
-            {% endif %}
-        </ul>
+      <button class="mode-toggle" id="mode-toggle-btn">
+        <i class="fa-solid fa-moon"></i>
+      </button>
+      <h1>{{ system_name }}</h1>
+      <!-- 筛选器 -->
+      <div class="filter-container">
+        <label for="classification-filter" class="filter-label">
+          <i class="fa-solid fa-filter"></i>
+          按分类筛选:
+        </label>
+        <select
+          id="classification-filter"
+          onchange="filterEmails()"
+          class="filter-select"
+        >
+          <option value="all">全部</option>
+          <option value="工作">工作</option>
+          <option value="个人">个人</option>
+          <option value="广告">广告</option>
+          <option value="垃圾邮件">垃圾邮件</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+      <p class="mb-4">显示最近的邮件列表（从数据库读取）：</p>
+      <ul>
+        {% if emails %} {% for email in emails %}
+        <a
+          href="{{ url_for('show_email_detail', email_id=email.id) }}"
+          class="email-item"
+          data-classification="{{ email.classification | default('其他') }}"
+        >
+          <div class="email-subject">
+            {{ email.subject | default('无主题') }}
+          </div>
+          <div class="email-meta">
+            <span>
+              <i class="fa-solid fa-user mr-1"></i>发件人: {{ email.sender |
+              default('未知发件人') }}
+            </span>
+            <span>
+              <i class="fa-solid fa-calendar mr-1"></i>日期: {{ email.date |
+              default('未知日期') }}
+            </span>
+            <span
+              class="classification-{{ email.classification | default('其他') }}"
+            >
+              <i class="fa-solid fa-tag mr-1"></i>分类: {{ email.classification
+              | default('未分类') }}
+            </span>
+          </div>
+          {% if email.summary and email.summary != 'AI摘要失败' %}
+          <div class="email-summary">
+            <strong>摘要:</strong> {{ email.summary | default('无摘要') |
+            truncate(150, True) }}
+          </div>
+          {% endif %}
+        </a>
+        {% endfor %} {% else %}
+        <li class="bg-white p-6 rounded-lg shadow-md">
+          <p>数据库中没有找到邮件记录或获取失败。</p>
+          <p>请确保您已运行过 fetch_mail.py 来获取和存储邮件。</p>
+          <p>请确保您已运行过 process_mail_ai.py 来进行 AI 处理。</p>
+        </li>
+        {% endif %}
+      </ul>
     </div>
-</body>
+    <script>
+      const modeToggleBtn = document.getElementById("mode-toggle-btn");
+      const body = document.body;
+
+      // 检查 localStorage 中是否有保存的模式
+      const currentMode = localStorage.getItem("mode");
+      if (currentMode === "dark") {
+        body.classList.add("dark-mode");
+        modeToggleBtn.innerHTML = '<i class="fa-solid fa-sun"></i>';
+      }
+
+      modeToggleBtn.addEventListener("click", () => {
+        body.classList.toggle("dark-mode");
+        if (body.classList.contains("dark-mode")) {
+          modeToggleBtn.innerHTML = '<i class="fa-solid fa-sun"></i>';
+          localStorage.setItem("mode", "dark");
+        } else {
+          modeToggleBtn.innerHTML = '<i class="fa-solid fa-moon"></i>';
+          localStorage.setItem("mode", "light");
+        }
+      });
+
+      function filterEmails() {
+        const filterValue = document.getElementById(
+          "classification-filter"
+        ).value;
+        const emailList = document.querySelectorAll(".email-item");
+
+        emailList.forEach((emailItem) => {
+          const classification = emailItem.getAttribute("data-classification");
+          if (filterValue === "all" || classification === filterValue) {
+            emailItem.style.display = "block";
+          } else {
+            emailItem.style.display = "none";
+          }
+        });
+      }
+    </script>
+  </body>
 </html>
