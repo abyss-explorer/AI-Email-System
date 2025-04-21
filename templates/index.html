@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }} - AI Email System</title>
+    <style>
+        /* 保持之前的基本样式 */
+        body { font-family: sans-serif; line-height: 1.6; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { max-width: 900px; margin: 20px auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        h1 { color: #0056b3; text-align: center; margin-bottom: 20px; }
+        .email-list { list-style: none; padding: 0; }
+        .email-item { background-color: #e9e9eb; border: 1px solid #ccc; margin-bottom: 15px; padding: 15px; border-radius: 5px; } /* 稍微增加底部间距 */
+        .email-header { font-weight: bold; margin-bottom: 5px; color: #0056b3; }
+        .email-meta { font-size: 0.8em; color: #777; margin-top: 5px; margin-bottom: 10px; } /* 增加底部间距 */
+        .email-meta span { margin-right: 15px; }
+        .email-summary, .email-reply { font-size: 0.9em; color: #555; margin-top: 5px; padding-left: 10px; border-left: 3px solid #0056b3; } /* 为摘要和建议添加样式 */
+        .email-reply { border-left-color: #28a745; } /* 回复建议使用不同的颜色 */
+        .ai-results { margin-top: 10px; }
+        .ai-results p { margin: 5px 0; }
+
+        /* Optional: Style for different classifications */
+        .classification-工作 { color: #007bff; font-weight: bold; }
+        .classification-个人 { color: #28a745; font-weight: bold; }
+        .classification-广告 { color: #ffc107; font-weight: bold; }
+        .classification-垃圾邮件 { color: #dc3545; font-weight: bold; }
+        .classification-AI处理失败 { color: #6c757d; font-weight: bold; }
+        .classification-无正文 { color: #6c757d; font-weight: bold; }
+         .classification-其他 { color: #6c757d; font-weight: bold; } /* Default/fallback */
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ system_name }}</h1>
+        <p>显示最近的邮件列表（从数据库读取）：</p>
+        <ul class="email-list">
+            {% if emails %}
+                {% for email in emails %}
+                    {# 使用 a 标签将整个 li 内容包装起来，href 指向新的详情页路由 #}
+                    {# url_for('show_email_detail', email_id=email.id) 会根据 Flask 中的路由定义生成类似 /email/邮件ID 的URL #}
+                    <a href="{{ url_for('show_email_detail', email_id=email.id) }}" style="text-decoration: none; color: inherit;">
+                    <li class="email-item">
+                        <div class="email-header">
+                            主题: {{ email.subject | default('无主题') }}
+                        </div>
+                        <div class="email-meta">
+                            <span>发件人: {{ email.sender | default('未知发件人') }}</span>
+                            <span>日期: {{ email.date | default('未知日期') }}</span>
+                            <span class="classification-{{ email.classification | default('其他') }}">
+                                分类: {{ email.classification | default('未分类') }}
+                            </span>
+                        </div>
+                        {# 在列表页可以只显示摘要片段 #}
+                         {% if email.summary and email.summary != 'AI摘要失败' %}
+                           <div class="email-summary">
+                                <strong>摘要:</strong> {{ email.summary | default('无摘要') | truncate(150, True) }} {# Jinja2 的 truncate 过滤器可用于截断文本 #}
+                           </div>
+                        {% endif %}
+                         {# 回复建议在列表页不显示，移到详情页 #}
+                    </li>
+                     </a> {# 关闭 a 标签 #}
+                {% endfor %}
+            {% else %}
+                {# ... (如果 emails 列表为空时的提示不变) ... #}
+                <li>数据库中没有找到邮件记录或获取失败。</li>
+                <li>请确保您已运行过 fetch_mail.py 来获取和存储邮件。</li>
+                <li>请确保您已运行过 process_mail_ai.py 来进行 AI 处理。</li>
+            {% endif %}
+        </ul>
+    </div>
+</body>
+</html>
