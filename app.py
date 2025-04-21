@@ -84,6 +84,36 @@ def get_email_by_id(db_file, email_id):
     return email_data
 
 
+# --- 数据库写入/更新函数 ---
+def update_email_classification_in_db(db_file, email_id, new_classification):
+    """更新数据库中指定邮件的用户修正分类"""
+    conn = None
+    try:
+        conn = sqlite3.connect(db_file)
+        cursor = conn.cursor()
+
+        # 更新 classification 字段，并可以选择更新 ai_processed_at 或添加一个用户更新时间戳
+        # 这里我们更新 classification 和 ai_processed_at（表示最近一次被修改的时间）
+        cursor.execute('''
+            UPDATE emails
+            SET classification = ?,
+                ai_processed_at = ? -- 记录用户修正的时间
+            WHERE id = ?
+        ''', (new_classification, datetime.now().isoformat(), email_id))
+
+        conn.commit() # 提交更改
+        print(f"成功更新邮件 ID: {email_id} 的分类为 {new_classification}") # 后端日志
+
+    except sqlite3.Error as e:
+        print(f"数据库错误（更新分类）: {e}")
+        # 在生产环境中，需要更完善的错误处理和日志记录
+        return False # 指示更新失败
+    finally:
+        if conn:
+            conn.close()
+        return True # 指示更新成功
+
+
 # --- 路由和视图函数 ---
 # 列表页路由保持不变
 @app.route('/')
@@ -121,9 +151,37 @@ def show_email_detail(email_id):
     # 4. 渲染 email_detail.html 模板并传递数据
     return render_template('email_detail.html', **data_to_pass)
 
+# 接收来自详情页表单的 POST 请求
+@app.route('/update_classification/<email_id>', methods=['POST'])
+def update_classification(email_id):
+    # 1. 从接收到的 POST 表单数据中获取用户选择的新分类值
+    # request.form 是一个字典，包含了表单中所有通过 POST 发送的数据
+    # new_classification 是我们在模板中给单选按钮组设置的 name
+    new_classification = request.form.get('new_classification')
+
+    # 2. （可选但推荐）验证接收到的分类值是否有效
+    valid_classifications = ['工作', '个人', '广告', '垃圾邮件', '其他'] # 需要与模板中的选项一致
+    if not new_classification or new_classification not in valid_classifications:
+        # 如果接收到的值无效，可以打印警告或向用户显示错误信息
+        print(f"警告：接收到邮件 ID {email_id} 的无效分类修正值: {new_classification}")
+        # 对于无效输入，通常不进行更新，并重定向回详情页
+        return redirect(url_for('show_email_detail', email_id=email_id))
+
+    # 3. 调用数据库更新函数
+    success = update_email_classification_in_db(DATABASE_FILE, email_id, new_classification)
+
+    # 4. 更新完成后，重定向用户回邮件详情页面
+    # 重定向是处理 POST 请求后的标准做法，可以避免用户刷新页面时重复提交表单
+    return redirect(url_for('show_email_detail', email_id=email_id))
+
+    # 如果数据库更新失败，也可以选择重定向到一个错误页面或在详情页显示错误信息
+    # 例如: if success: return redirect(...) else: return render_template('error.html', ...)
+
+
 
 # 运行应用
 if __name__ == '__main__':
+
     # debug=True 可以在开发过程中提供详细的错误信息
     # port=XXXX 指定一个不同的端口号
     # **请使用您之前成功运行应用的端口号**

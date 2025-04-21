@@ -32,6 +32,25 @@
          .back-link { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #0056b3; font-size: 1.1em; }
          .back-link:hover { text-decoration: underline; }
 
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: inline-block; margin-right: 15px; }
+        .form-group input[type="radio"] { margin-right: 5px; }
+        .form-group button {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+         .form-group button:hover {
+             background-color: #0056b3;
+         }
+
+
     </style>
 </head>
 <body>
@@ -58,6 +77,8 @@
         {# 显示完整邮件正文 #}
         <div class="email-body">
             <h2>邮件正文:</h2>
+            {# {{ email.body | default('无正文') }} #}
+            {# 使用 <pre> 标签或处理，但 white-space: pre-wrap; 样式通常已经足够 #}
             <p>{{ email.body | default('无正文') }}</p>
         </div>
 
@@ -89,6 +110,29 @@
                  <p style="color: red;"><strong>AI处理状态:</strong> {{ email.classification }} - {{ email.classification_reason | default('无详细信息') }}</p>
              {% endif %}
 
+
+             <h3 style="margin-top: 20px;">用户分类反馈 / 修正:</h3>
+             {# 添加分类修正表单 #}
+             {# 表单提交到一个新的 URL (比如 /update_classification/邮件ID)，使用 POST 方法 #}
+             {# url_for('update_classification', email_id=email.id) 会根据 Flask 中定义的路由生成正确的 URL #}
+             <form action="{{ url_for('update_classification', email_id=email.id) }}" method="post">
+                <div class="form-group">
+                     <p><strong>修正 AI 分类为:</strong></p>
+                     {# 定义所有可能的分类选项 #}
+                     {% set classifications = ['工作', '个人', '广告', '垃圾邮件', '其他'] %}
+                     {% for cls in classifications %}
+                         <label>
+                             <input type="radio" name="new_classification" value="{{ cls }}"
+                                    {% if email.classification == cls %} checked {% endif %}> {# 如果当前分类与选项匹配，则默认选中 #}
+                             {{ cls }}
+                         </label>
+                         {% if not loop.last %}&nbsp;&nbsp;{% endif %} {# 添加一些右边距 #}
+                     {% endfor %}
+                 </div>
+                 <div class="form-group">
+                     <button type="submit">保存分类修正</button>
+                 </div>
+             </form>
 
         </div>
 
